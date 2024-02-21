@@ -19,14 +19,14 @@ Pendant_WHB04B6::Pendant_WHB04B6(uint8_t dev_addr, uint8_t instance):
 {
     this->send_display_report();
     // DEMO DATA
-    /*
+    
     axis_coordinates[0]=-965.2345678;
     axis_coordinates[1]=1155.841333;
     axis_coordinates[2]=-44.8365;
     axis_coordinates[3]=34.224378;
     axis_coordinates[4]=-3335.1241333;
     axis_coordinates[5]=5564.1334465;
-    */
+    
 };
 Pendant_WHB04B6::~Pendant_WHB04B6()
 {
@@ -78,6 +78,18 @@ void Pendant_WHB04B6::report_received(uint8_t const *report, uint16_t len)
     }
 }
 
+void Pendant_WHB04B6::set_report_complete(uint8_t report_id, uint8_t report_type, uint16_t len)
+{
+    if(len!=8)
+    {
+        this->set_report_next = 0;
+    }
+    else
+    {
+        this->send_display_report();
+    }
+}
+
 void Pendant_WHB04B6::double_to_report_bytes(double val, uint8_t idx_intval_lower, uint8_t idx_intval_upper, uint8_t idx_frac_lower, uint8_t idx_frac_upper)
 {
   uint16_t intval;
@@ -103,20 +115,28 @@ void Pendant_WHB04B6::uint16_to_report_bytes(uint16_t val, uint8_t idx_lower, ui
 
 void Pendant_WHB04B6::send_display_report()
 {
-    this->last_display_report = millis();
+    if(this->set_report_next==0)
+    {
+        this->last_display_report = millis();
 
-    // update axis coordinates in display report data
-    this->double_to_report_bytes(axis_coordinates[0+this->display_axis_offset],4,5,6,7);
-    this->double_to_report_bytes(axis_coordinates[1+this->display_axis_offset],8,9,10,11);
-    this->double_to_report_bytes(axis_coordinates[2+this->display_axis_offset],12,13,14,15);
+        // update axis coordinates in display report data
+        this->double_to_report_bytes(axis_coordinates[0+this->display_axis_offset],4,5,6,7);
+        this->double_to_report_bytes(axis_coordinates[1+this->display_axis_offset],8,9,10,11);
+        this->double_to_report_bytes(axis_coordinates[2+this->display_axis_offset],12,13,14,15);
 
-    // update mode indicator in display report data (mode not used yet!)
-    uint8_t mode_bits = 0;
-    if(this->mode == Mode::Step) mode_bits=0x01;
-    this->display_report_data[R_IDX(3)] = (this->display_report_data[R_IDX(3)]&(~0x3)) | mode_bits;
-
+        // update mode indicator in display report data (mode not used yet!)
+        uint8_t mode_bits = 0;
+        if(this->mode == Mode::Step) mode_bits=0x01;
+        this->display_report_data[R_IDX(3)] = (this->display_report_data[R_IDX(3)]&(~0x3)) | mode_bits;
+        Serial.println("xxx");
+    }
+    if(this->set_report_next>2)
+    {
+        this->set_report_next=0;
+        return;
+    }
     // send display report data to device
-    this->set_report(0x06, HID_REPORT_TYPE_FEATURE, &this->display_report_data, 24);
+    this->set_report(0x06, HID_REPORT_TYPE_FEATURE, &(this->display_report_data[this->set_report_next++ * 8]), 8);
 }
 
 void Pendant_WHB04B6::loop()

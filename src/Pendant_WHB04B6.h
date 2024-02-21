@@ -60,6 +60,7 @@ public:
   Pendant_WHB04B6(uint8_t dev_addr, uint8_t instance);
   ~Pendant_WHB04B6();
   void report_received(uint8_t const *report, uint16_t len) override;
+  void set_report_complete(uint8_t report_id, uint8_t report_type, uint16_t len) override;
   void duetstatus_received(DuetStatus * duetstatus) override;
   void loop() override;
 private:
@@ -68,6 +69,7 @@ private:
   void uint16_to_report_bytes(uint16_t val, uint8_t idx_lower, uint8_t idx_upper);
   double axis_coordinates[6];
   uint8_t display_report_data[24];
+  uint8_t set_report_next = 0;
   uint8_t selected_axis, display_axis_offset, selected_feed;
   unsigned long last_display_report;
   int16_t jog;
